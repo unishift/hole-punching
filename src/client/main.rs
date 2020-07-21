@@ -61,13 +61,34 @@ fn parse_args() -> std::io::Result<Params> {
 fn main() -> std::io::Result<()> {
     let params = parse_args()?;
 
-    let mut socket = UdpSocket::bind(params.src_address)?;
+    let socket = UdpSocket::bind(params.src_address.as_str());
+    let socket = match socket {
+        Ok(s) => {
+            println!(
+                "Successfully binded {src}!",
+                src = params.src_address.as_str()
+            );
+            s
+        }
+        Err(e) => panic!(
+            "Couldn't bind to {src}!\n{err}",
+            src = params.src_address.as_str(),
+            err = e
+        ),
+    };
 
-    socket.connect(params.dst_address);
+    let connect_res = socket.connect(params.dst_address.as_str());
+    match connect_res {
+        Ok(_) => println!("Connected to {dst}", dst = params.dst_address.as_str()),
+        Err(e) => panic!(
+            "Couldn't connect to {dst}.\n{err}",
+            dst = params.dst_address.as_str(),
+            err = e
+        ),
+    }
 
     for line in stdin().lock().lines() {
         let msg = line.unwrap().clone() + "\n";
-        print!("{}", msg);
         socket.send(msg.as_bytes())?;
     }
 
