@@ -114,8 +114,31 @@ fn main() -> std::io::Result<()> {
             err = e
         ),
     }
+    socket.send(format!("Connected to the server {}", params.dst_address).as_bytes());
 
-    socket.send(b"Connected");
+    // Get another client address from the server
+    let mut buf: Vec<u8> = vec![0; BUF_SIZE];
+    let res = socket.recv(&mut buf);
+    let client_address = match res {
+        Ok(_) => match str::from_utf8(&buf) {
+            Ok(text) => text.trim_matches(char::from(0)),
+            Err(e) => panic!("Error decoding client address")
+        },
+        Err(e) => panic!("Error obtaining client address")
+    };
+    println!("Got client address {} of len {}", client_address, client_address.len());
+
+    let connect_res = socket.connect(client_address);
+    match connect_res {
+        Ok(_) => println!("Connected to {dst}", dst = client_address),
+        Err(e) => panic!(
+            "Couldn't connect to {dst}.\n{err}",
+            dst = client_address,
+            err = e
+        ),
+    }
+    socket.send(format!("Connected to the client {}", client_address).as_bytes());
+
     spawn_recv_loop(socket.try_clone()?);
 
     for line in stdin(). lock(). lines() {
