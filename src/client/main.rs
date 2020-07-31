@@ -1,11 +1,16 @@
 use std::env::args;
 use std::io::{stdin, BufRead};
 use std::net::UdpSocket;
+use std::thread;
+use std::str;
+
+const BUF_SIZE: usize = 4096;
 
 #[derive(Default, Debug)]
 struct Params {
     src_address: String,
     dst_address: String,
+    mode: String,
 }
 
 fn parse_args() -> std::io::Result<Params> {
@@ -21,6 +26,7 @@ fn parse_args() -> std::io::Result<Params> {
                 match arg.as_str() {
                     "-s" => state = "-s",
                     "-d" => state = "-d",
+                    "-m" => state = "-m",
                     _ => {
                         return Err(std::io::Error::new(
                             std::io::ErrorKind::Other,
@@ -32,10 +38,13 @@ fn parse_args() -> std::io::Result<Params> {
             "-s" => {
                 params.src_address = arg.clone();
                 state = "";
-            }
+            },
             "-d" => {
                 params.dst_address = arg.clone();
                 state = "";
+            },
+            "-m" => {
+                params.mode = arg.clone()
             }
             _ => (),
         };
@@ -56,6 +65,25 @@ fn parse_args() -> std::io::Result<Params> {
     }
 
     Ok(params)
+}
+
+fn spawn_recv_loop(socket: UdpSocket) {
+    thread::spawn(move || {
+        let mut buf: Vec<u8> = vec![0; BUF_SIZE];
+        loop {
+            let res = socket.recv(&mut buf);
+            match res {
+                Ok(_nb_chars) => {
+                    let word = str::from_utf8(&buf);
+                    match word {
+                        Ok(text) => print!("{}", text),
+                        Err(e) => println!("Can't convert buffer to utf8 string. {:?}", e)
+                    };
+                },
+                Err(e) => println!("Can't receive message from the server. {:?}", e)
+            }
+        }
+    });
 }
 
 fn main() -> std::io::Result<()> {
@@ -87,7 +115,10 @@ fn main() -> std::io::Result<()> {
         ),
     }
 
-    for line in stdin().lock().lines() {
+    socket.send(b"Connected");
+    spawn_recv_loop(socket.try_clone()?);
+
+    for line in stdin(). lock(). lines() {
         let msg = line.unwrap().clone() + "\n";
         socket.send(msg.as_bytes())?;
     }
