@@ -37,15 +37,9 @@ fn main() {
 
         listener
             .send_to(first_client.to_string().as_bytes(), second_client)
-            .unwrap_or_else(|_| {
-                println!("Error to send first client {}", second_client.to_string());
-                0
-            });
+            .expect(format!("Error to send second client {}", second_client.to_string()).as_str());
         listener
             .send_to(second_client.to_string().as_bytes(), first_client)
-            .unwrap_or_else(|_| {
-                println!("Error to send second client {}", second_client.to_string());
-                0
-            });
+            .expect(format!("Error to send second client {}", second_client.to_string()).as_str());
     }
 }
