@@ -64,6 +64,7 @@ fn spawn_recv_loop(socket: UdpSocket) {
                 }
                 Err(e) => println!("Can't receive message from the server. {:?}", e),
             }
+            buf.iter_mut().map(|x| *x = 0).count();
         }
     });
 }
