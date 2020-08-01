@@ -1,3 +1,5 @@
+use clap;
+use clap::{App, Arg, ArgMatches};
 use std::net::{SocketAddr, UdpSocket};
 
 const BUF_SIZE: usize = 1024;
@@ -27,8 +29,32 @@ fn get_clients_info(listener: &UdpSocket) -> (SocketAddr, SocketAddr) {
     (first_address, second_address)
 }
 
+fn parse_args() -> ArgMatches {
+    App::new("Hole-punching server")
+        .about("Server for exchange endpoints with client")
+        .arg(
+            Arg::with_name("port")
+                .short('p')
+                .long("port")
+                .value_name("PORT")
+                .about("Port to listen")
+                .takes_value(true),
+        )
+        .arg(
+            Arg::with_name("protocol")
+                .short('t')
+                .long("proto")
+                .about("Use transport protocol: UDP or TCP"),
+        )
+        .get_matches()
+}
+
 fn main() {
-    let listener = UdpSocket::bind("0.0.0.0:6543").unwrap();
+    let args = parse_args();
+    let server_addr = format!("0.0.0.0:{}", args.value_of("port").unwrap());
+    let listener = match args.value_of("protocol") {
+        None | Some("UDP") | Some("udp") | _ => UdpSocket::bind(server_addr).unwrap(),
+    };
 
     println!("Server started listening!");
 
